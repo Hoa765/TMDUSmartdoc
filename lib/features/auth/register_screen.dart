@@ -5,43 +5,45 @@ import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
 import 'providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+  void _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    if (email.isEmpty || password.isEmpty) return;
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu xác nhận không khớp.')),
+      );
       return;
     }
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-
-    if (success && mounted) {
-      context.go('/home');
-    }
-  }
-
-  void _handleGoogleLogin() async {
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.signInWithGoogle();
+    final success = await authProvider.register(email, password, name);
 
     if (success && mounted) {
       context.go('/home');
@@ -74,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ).appScaleIn(),
                   AppSpacing.vLg,
                   Text(
-                    'Chào mừng quay trở lại',
+                    'Tạo tài khoản',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -82,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ).appEntrance(delay: const Duration(milliseconds: 80)),
                   AppSpacing.vXs,
                   Text(
-                    'Đăng nhập để tiếp tục với TDMU SmartDoc',
+                    'Đăng ký để bắt đầu với TDMU SmartDoc',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ).appEntrance(delay: const Duration(milliseconds: 140)),
@@ -94,6 +96,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         CustomTextField(
+                          controller: _nameController,
+                          hintText: 'Họ và tên',
+                          prefixIcon: Icons.person_outline,
+                          onChanged: (_) => authProvider.clearError(),
+                        ),
+                        AppSpacing.vMd,
+                        CustomTextField(
                           controller: _emailController,
                           hintText: 'Địa chỉ Email',
                           prefixIcon: Icons.email_outlined,
@@ -103,27 +112,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         AppSpacing.vMd,
                         CustomTextField(
                           controller: _passwordController,
-                          hintText: 'Mật khẩu',
+                          hintText: 'Mật khẩu (ít nhất 6 ký tự)',
                           prefixIcon: Icons.lock_outline,
                           isPassword: true,
                           onChanged: (_) => authProvider.clearError(),
                         ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => context.push('/forgot-password'),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xs,
-                                vertical: AppSpacing.xs,
-                              ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text('Quên mật khẩu?'),
-                          ),
+                        AppSpacing.vMd,
+                        CustomTextField(
+                          controller: _confirmController,
+                          hintText: 'Xác nhận mật khẩu',
+                          prefixIcon: Icons.lock_outline,
+                          isPassword: true,
+                          onChanged: (_) => authProvider.clearError(),
                         ),
                         if (authProvider.errorMessage != null) ...[
+                          AppSpacing.vSm,
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm,
@@ -148,8 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   AppSpacing.vLg,
 
                   CustomButton(
-                    label: 'Đăng nhập',
-                    onPressed: _handleLogin,
+                    label: 'Đăng ký',
+                    onPressed: _handleRegister,
                     isLoading: authProvider.isLoading,
                     isFullWidth: true,
                   ).appEntrance(delay: const Duration(milliseconds: 260)),
@@ -163,11 +166,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     runSpacing: AppSpacing.xs,
                     children: [
                       Text(
-                        "Chưa có tài khoản?",
+                        'Đã có tài khoản?',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       TextButton(
-                        onPressed: () => context.push('/register'),
+                        onPressed: () => context.pop(),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
@@ -176,68 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text(
-                          'Đăng ký',
+                          'Đăng nhập',
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ).appEntrance(delay: const Duration(milliseconds: 320)),
-
-                  AppSpacing.vXl,
-
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                        ),
-                        child: Text(
-                          'HOẶC',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0,
-                              ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: AppColors.border)),
-                    ],
-                  ).appEntrance(delay: const Duration(milliseconds: 380)),
-
-                  AppSpacing.vXl,
-
-                  OutlinedButton(
-                    onPressed: _handleGoogleLogin,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 54),
-                      backgroundColor: AppColors.surfaceElevated,
-                      foregroundColor: AppColors.textPrimary,
-                      side: BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadius.control,
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.g_mobiledata, size: 32),
-                        AppSpacing.hSm,
-                        Flexible(
-                          child: Text(
-                            'Tiếp tục với Google',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).appEntrance(delay: const Duration(milliseconds: 440)),
                 ],
               ),
             ),
