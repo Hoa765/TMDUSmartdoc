@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "197561823479",
+    "project_id": "tdmu-smartdoc",
+    "storage_bucket": "tdmu-smartdoc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:197561823479:android:420afd6aa059223f1ba3f2",
+        "android_client_info": {
+          "package_name": "com.example.tdmu_smartdocs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7WUoqAGNQ5twZ__FNe2IoEQyf48hnWus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
