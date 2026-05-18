@@ -1,9 +1,12 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
 import 'providers/upload_provider.dart';
+import '../chat/providers/chat_provider.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -13,237 +16,272 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
-  void _startMockUpload() {
-    context.read<UploadProvider>().startMockUpload(() {
-      _showSuccessAndNavigate();
-    });
-  }
+  Future<void> _pickAndUpload() async {
+    // Capture providers trước mọi await để tránh dùng context sau async gap
+    final uploadProvider = context.read<UploadProvider>();
+    final chatProvider = context.read<ChatProvider>();
 
-  void _showSuccessAndNavigate() {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Document processed successfully!'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.control),
-          margin: const EdgeInsets.all(AppSpacing.lg),
-        ),
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'txt'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    if (file.bytes == null) return;
+
+    final success = await uploadProvider.uploadFile(file.name, file.bytes!);
+
+    if (!mounted) return;
+
+    if (success) {
+      // Mở cuộc hội thoại riêng cho tài liệu vừa upload, navigate thẳng vào chat
+      chatProvider.startNewConversation(
+        docId: uploadProvider.lastDocumentId,
+        docTitle: file.name,
       );
       context.go('/chat');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Tải lên thất bại. Vui lòng thử lại!'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.control),
+          margin: const EdgeInsets.all(AppSpacing.md),
+        ),
+      );
     }
-  }
-
-  void _cancelUpload() {
-    context.read<UploadProvider>().cancelUpload();
   }
 
   @override
   Widget build(BuildContext context) {
-    final uploadProvider = context.watch<UploadProvider>();
-    final pagePadding = AppBreakpoints.pagePadding(context);
+    final provider = context.watch<UploadProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Upload Material')),
-      body: SingleChildScrollView(
-        padding: pagePadding,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: AppBreakpoints.isCompact(context) ? 520 : 680,
-            ),
-            child: AnimatedSwitcher(
-              duration: AppMotion.slow,
-              switchInCurve: AppMotion.curve,
-              switchOutCurve: AppMotion.curve,
-              child: uploadProvider.isUploading
-                  ? _buildUploadingState(uploadProvider)
-                  : _buildIdleState(),
+      appBar: AppBar(
+        title: const Text('Tải tài liệu lên'),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: provider.isUploading
+                    ? _UploadingCard(provider: provider, key: const ValueKey('up'))
+                    : _IdleCard(onPick: _pickAndUpload, key: const ValueKey('idle')),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildIdleState() {
+// ── Idle state ──────────────────────────────────────────────────────────────
+
+class _IdleCard extends StatelessWidget {
+  final VoidCallback onPick;
+  const _IdleCard({required this.onPick, super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
-      key: const ValueKey('idle'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Drag and Drop Area
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < AppBreakpoints.compact;
-            return InkWell(
-              onTap: _startMockUpload,
+        // Drop zone
+        InkWell(
+          onTap: onPick,
+          borderRadius: AppRadius.card,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.xxl, horizontal: AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
               borderRadius: AppRadius.card,
-              child: Container(
-                padding: EdgeInsets.all(
-                  isCompact ? AppSpacing.xl : AppSpacing.xxl,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: AppRadius.card,
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    width: 2,
-                  ),
-                  boxShadow: AppShadows.card,
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.cloud_upload_outlined,
-                        size: 48,
-                        color: AppColors.primary,
-                      ),
-                    ).appScaleIn(),
-                    AppSpacing.vLg,
-                    Text(
-                      'Tap or drag files here',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    AppSpacing.vSm,
-                    Text(
-                      'Support PDF, PPTX, DOCX up to 50MB',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    AppSpacing.vLg,
-                    CustomButton(
-                      label: 'Browse Files',
-                      onPressed: _startMockUpload,
-                      icon: Icons.folder_open,
-                      isFullWidth: isCompact,
-                    ),
-                  ],
-                ),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.35),
+                width: 2,
               ),
-            );
-          },
-        ).appEntrance(),
-
-        AppSpacing.vXl,
-
-        Text(
-          'Supported Formats',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-        ).appEntrance(delay: const Duration(milliseconds: 160)),
-
-        AppSpacing.vMd,
-
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.md,
+              boxShadow: AppShadows.card,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildFormatChip(
-                  context,
-                  'PDF',
-                  Icons.picture_as_pdf,
-                  AppColors.documentPdf,
-                  constraints.maxWidth,
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 44,
+                    color: AppColors.primary,
+                  ),
+                )
+                    .animate()
+                    .scale(begin: const Offset(0.8, 0.8), duration: 400.ms,
+                        curve: Curves.elasticOut),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Nhấp hoặc kéo thả file vào đây',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                _buildFormatChip(
-                  context,
-                  'Word',
-                  Icons.description,
-                  AppColors.primary,
-                  constraints.maxWidth,
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Hỗ trợ PDF · TXT · Tối đa 20 MB',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
                 ),
-                _buildFormatChip(
-                  context,
-                  'PowerPoint',
-                  Icons.slideshow,
-                  AppColors.documentSlide,
-                  constraints.maxWidth,
+                const SizedBox(height: AppSpacing.lg),
+                CustomButton(
+                  label: 'Chọn tệp tin',
+                  onPressed: onPick,
+                  icon: Icons.folder_open_outlined,
                 ),
               ],
-            );
-          },
-        ).appEntrance(delay: const Duration(milliseconds: 220)),
+            ),
+          ),
+        ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // Format chips
+        Text(
+          'Định dạng hỗ trợ',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ).animate().fadeIn(delay: 100.ms),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _FormatChip(
+                icon: Icons.picture_as_pdf_rounded,
+                label: 'PDF',
+                color: AppColors.documentPdf,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _FormatChip(
+                icon: Icons.text_snippet_outlined,
+                label: 'TXT',
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ).animate().fadeIn(delay: 160.ms),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // Tip
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.primaryContainer.withValues(alpha: 0.5),
+            borderRadius: AppRadius.control,
+            border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'AI sẽ đọc và lập chỉ mục nội dung tài liệu để bạn có thể hỏi đáp trực tiếp.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onPrimaryContainer,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: 220.ms),
       ],
     );
   }
+}
 
-  Widget _buildFormatChip(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    double parentWidth,
-  ) {
-    final isSingleColumn = parentWidth < 420;
-    final width = isSingleColumn
-        ? parentWidth
-        : (parentWidth - (AppSpacing.md * 2)) / 3;
+class _FormatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _FormatChip(
+      {required this.icon, required this.label, required this.color});
 
-    return SizedBox(
-      width: width,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: isSingleColumn ? AppSpacing.md : AppSpacing.lg,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
-          borderRadius: AppRadius.card,
-          border: Border.all(color: AppColors.border),
-          boxShadow: AppShadows.card,
-        ),
-        child: isSingleColumn
-            ? Row(
-                children: [
-                  Icon(icon, color: color, size: 28),
-                  AppSpacing.hMd,
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  Icon(icon, color: color, size: 32),
-                  AppSpacing.vSm,
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: AppRadius.control,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.card,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildUploadingState(UploadProvider provider) {
+// ── Uploading state ──────────────────────────────────────────────────────────
+
+class _UploadingCard extends StatelessWidget {
+  final UploadProvider provider;
+  const _UploadingCard({required this.provider, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (provider.progress * 100).toInt();
+    const steps = [
+      (label: 'Tải lên', icon: Icons.cloud_upload_outlined, threshold: 0.05),
+      (label: 'Trích xuất', icon: Icons.article_outlined, threshold: 0.40),
+      (label: 'Nhúng AI', icon: Icons.hub_outlined, threshold: 0.70),
+      (label: 'Hoàn tất', icon: Icons.auto_awesome, threshold: 0.90),
+    ];
+
     return Container(
-      key: const ValueKey('uploading'),
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
         borderRadius: AppRadius.card,
@@ -251,189 +289,185 @@ class _UploadScreenState extends State<UploadScreen> {
         boxShadow: AppShadows.card,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          AIProcessingLoader(
-            message: provider.progress < 0.7
-                ? 'Preparing your document'
-                : 'SmartDoc AI is indexing',
-            detail: provider.currentStep,
-          ),
-          AppSpacing.vXl,
-
+          // Header
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.documentPdf.withValues(alpha: 0.1),
-                  borderRadius: AppRadius.control,
-                ),
-                child: const Icon(
-                  Icons.picture_as_pdf,
-                  color: AppColors.documentPdf,
-                ),
-              ),
-              AppSpacing.hMd,
+              _AIPulseIcon(),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI_Research_Paper_2026.pdf',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      provider.progress < 0.7
+                          ? 'Đang xử lý tài liệu…'
+                          : 'AI đang lập chỉ mục',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      provider.currentFileName.isEmpty
+                          ? 'Đang chuẩn bị…'
+                          : provider.currentFileName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                    AppSpacing.vXs,
-                    Text(
-                      '3.4 MB',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                     ),
                   ],
                 ),
               ),
+              Text(
+                '$pct%',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+              ),
             ],
           ),
 
-          AppSpacing.vXl,
+          const SizedBox(height: AppSpacing.md),
 
+          // Progress bar
           ClipRRect(
             borderRadius: AppRadius.chip,
-            child: Stack(
-              children: [
-                LinearProgressIndicator(
-                  value: provider.progress,
-                  minHeight: 10,
-                  backgroundColor: AppColors.surfaceVariant,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.primary,
-                  ),
-                ),
-                if (provider.progress < 1)
-                  const Positioned.fill(
-                    child: IgnorePointer(
-                      child: Shimmer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(color: Colors.white24),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            child: LinearProgressIndicator(
+              value: provider.progress,
+              minHeight: 8,
+              backgroundColor: AppColors.surfaceVariant,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ),
 
-          AppSpacing.vMd,
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  provider.currentStep,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              AppSpacing.hMd,
-              Text(
-                '${(provider.progress * 100).toInt()}%',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            provider.currentStep,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.primary),
           ),
 
-          AppSpacing.vXl,
-          _buildProcessingTimeline(provider.progress),
+          const SizedBox(height: AppSpacing.lg),
 
-          AppSpacing.vXxl,
+          // Step badges
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: steps.map((s) {
+              final done = provider.progress >= s.threshold;
+              return _StepBadge(
+                  icon: s.icon, label: s.label, active: done);
+            }).toList(),
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
 
           CustomButton(
-            label: 'Cancel Upload',
-            onPressed: _cancelUpload,
+            label: 'Hủy',
+            onPressed: () => context.read<UploadProvider>().cancelUpload(),
             variant: ButtonVariant.outline,
             isFullWidth: true,
           ),
         ],
       ),
-    ).appEntrance();
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+class _StepBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  const _StepBadge(
+      {required this.icon, required this.label, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: active ? AppColors.primaryContainer : AppColors.surfaceVariant,
+        borderRadius: AppRadius.chip,
+        border: Border.all(
+          color: active
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              size: 14,
+              color: active ? AppColors.primary : AppColors.textTertiary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: active ? AppColors.primary : AppColors.textTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AIPulseIcon extends StatefulWidget {
+  @override
+  State<_AIPulseIcon> createState() => _AIPulseIconState();
+}
+
+class _AIPulseIconState extends State<_AIPulseIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
+    _scale = Tween(begin: 0.93, end: 1.05).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
-  Widget _buildProcessingTimeline(double progress) {
-    final steps = [
-      (label: 'Upload', threshold: 0.05, icon: Icons.cloud_done_outlined),
-      (label: 'Extract', threshold: 0.4, icon: Icons.article_outlined),
-      (label: 'Embed', threshold: 0.7, icon: Icons.hub_outlined),
-      (label: 'Finalize', threshold: 0.9, icon: Icons.auto_awesome),
-    ];
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 430;
-        return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: steps.map((step) {
-            final isDone = progress >= step.threshold;
-            final isActive =
-                !isDone && progress >= (step.threshold - 0.3).clamp(0, 1);
-            final color = isDone || isActive
-                ? AppColors.primary
-                : AppColors.textTertiary;
-
-            return SizedBox(
-              width: isCompact
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - AppSpacing.sm * 3) / 4,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: isDone || isActive
-                      ? AppColors.primaryContainer
-                      : AppColors.surfaceVariant,
-                  borderRadius: AppRadius.control,
-                  border: Border.all(
-                    color: isDone || isActive
-                        ? AppColors.primary.withValues(alpha: 0.2)
-                        : AppColors.border,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: isCompact
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.center,
-                  children: [
-                    Icon(step.icon, size: 18, color: color),
-                    AppSpacing.hXs,
-                    Flexible(
-                      child: isActive
-                          ? const SkeletonBox(height: 12)
-                          : Text(
-                              step.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.primaryContainer,
+          borderRadius: AppRadius.control,
+        ),
+        child: const Icon(Icons.auto_awesome,
+            color: AppColors.primary, size: 22),
+      ),
     );
   }
 }

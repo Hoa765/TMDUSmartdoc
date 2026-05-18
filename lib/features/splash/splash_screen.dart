@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
@@ -13,11 +14,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/login');
-      }
-    });
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    // Chờ đồng thời: animation tối thiểu 500ms + Firebase khôi phục auth từ cache
+    final results = await Future.wait([
+      Future.delayed(const Duration(milliseconds: 500)),
+      FirebaseAuth.instance.authStateChanges().first,
+    ]);
+    if (!mounted) return;
+    final user = results[1] as User?;
+    context.go(user != null ? '/home' : '/login');
   }
 
   @override
@@ -42,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ).appEntrance(delay: const Duration(milliseconds: 120)),
             AppSpacing.vSm,
             Text(
-              'Your AI Learning Assistant',
+              'Trợ lý Học tập AI của Bạn',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(color: Colors.white70),

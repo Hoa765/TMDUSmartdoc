@@ -88,14 +88,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Text(
-                      'AI_Research_Paper_2026.pdf',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                    if (chatProvider.activeDocTitle != null)
+                      Text(
+                        chatProvider.activeDocTitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -106,6 +107,13 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: AppColors.surface.withValues(alpha: 0.92),
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Tạo hội thoại mới',
+            onPressed: () => chatProvider.startNewConversation(),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -185,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _handleSend(context),
                   decoration: InputDecoration(
-                    hintText: 'Ask SmartDoc...',
+                    hintText: 'Hỏi SmartDoc...',
                     border: OutlineInputBorder(
                       borderRadius: AppRadius.control,
                       borderSide: BorderSide.none,
