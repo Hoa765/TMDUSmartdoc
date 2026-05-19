@@ -68,12 +68,8 @@ class _ChatScreenState extends State<ChatScreen> {
         final notebooks = ctx.read<NotebookProvider>().notebooks;
         final chatProvider = ctx.read<ChatProvider>();
 
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.55,
-          maxChildSize: 0.9,
-          minChildSize: 0.3,
-          builder: (_, scrollCtrl) => Column(
+        return Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Handle bar
               Container(
@@ -100,8 +96,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         chatProvider.activeNotebookId != null)
                       TextButton.icon(
                         onPressed: () {
-                          chatProvider.clearActiveContext();
                           Navigator.pop(ctx);
+                          chatProvider.clearActiveContext();
                         },
                         icon: const Icon(Icons.clear_rounded, size: 16),
                         label: const Text('Bỏ chọn'),
@@ -113,9 +109,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-              Expanded(
+              Flexible(
                 child: ListView(
-                  controller: scrollCtrl,
+                  shrinkWrap: true,
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
                     // ── Notebooks ────────────────────────────────────────
@@ -144,9 +140,9 @@ class _ChatScreenState extends State<ChatScreen> {
                               ? nb.summary
                               : '${nb.suggestions.length} gợi ý AI',
                           onTap: () {
+                            Navigator.pop(ctx);
                             chatProvider.setActiveNotebook(nb.id,
                                 notebookName: nb.name);
-                            Navigator.pop(ctx);
                           },
                         );
                       }),
@@ -196,9 +192,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           title: doc.title,
                           subtitle: '${doc.pageCount} trang · ${doc.date}',
                           onTap: () {
+                            Navigator.pop(ctx);
                             chatProvider.setActiveDoc(doc.id,
                                 docTitle: doc.title);
-                            Navigator.pop(ctx);
                           },
                         );
                       }),
@@ -206,8 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ],
-          ),
-        );
+          );
       },
     );
   }
