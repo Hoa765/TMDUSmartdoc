@@ -12,7 +12,20 @@
           "package_name": "com.example.tdmu_smartdocs"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "197561823479-a05mk9c69qqppr1arn389eb6mjssiqo1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tdmu_smartdocs",
+            "certificate_hash": "b3d6c366a89bafcdbbd782190f477daf98fa9a10"
+          }
+        },
+        {
+          "client_id": "197561823479-snjn78rkb2b9874a0pudcbqpkaglum32.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB7WUoqAGNQ5twZ__FNe2IoEQyf48hnWus"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "197561823479-snjn78rkb2b9874a0pudcbqpkaglum32.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "197561823479-5oesu9o6cuafbcthr36j6cl2sn03tfg8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.tdmuSmartdocs"
+              }
+            }
+          ]
         }
       }
     }

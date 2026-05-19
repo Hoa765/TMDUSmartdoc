@@ -7,11 +7,14 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/home/providers/document_provider.dart';
 import 'features/chat/providers/chat_provider.dart';
 import 'features/upload/providers/upload_provider.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }

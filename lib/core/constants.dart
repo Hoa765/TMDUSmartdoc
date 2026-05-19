@@ -8,4 +8,5 @@ export 'theme/app_typography.dart';
 
 class AppConstants {
   static const Duration animationDuration = Duration(milliseconds: 300);
+  static const String backendBaseUrl = 'https://tdmu-smartdoc-api-production.up.railway.app';
 }

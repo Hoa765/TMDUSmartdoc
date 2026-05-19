@@ -15,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Hồ sơ'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -37,14 +37,14 @@ class ProfileScreen extends StatelessWidget {
                 ).appScaleIn(),
                 AppSpacing.vLg,
                 Text(
-                  authProvider.userName ?? 'Guest User',
+                  authProvider.userName ?? 'Khách',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.displaySmall,
                 ).appEntrance(delay: const Duration(milliseconds: 80)),
                 AppSpacing.vXs,
                 Text(
-                  'Computer Science - Year 3',
+                  'Khoa học Máy tính - Năm 3',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -57,23 +57,23 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       _buildProfileItem(
                         Icons.analytics_outlined,
-                        'Learning Stats',
+                        'Thống kê học tập',
                       ),
                       const Divider(height: 32),
                       _buildProfileItem(
                         Icons.bookmark_outline,
-                        'Saved Answers',
+                        'Câu trả lời đã lưu',
                       ),
                       const Divider(height: 32),
-                      _buildProfileItem(Icons.history, 'Chat History'),
+                      _buildProfileItem(Icons.history, 'Lịch sử trò chuyện'),
                       const Divider(height: 32),
-                      _buildProfileItem(Icons.help_outline, 'Help & Support'),
+                      _buildProfileItem(Icons.help_outline, 'Trợ giúp & Hỗ trợ'),
                     ],
                   ),
                 ).appEntrance(delay: const Duration(milliseconds: 180)),
                 AppSpacing.vXxl,
                 CustomButton(
-                  label: 'Sign Out',
+                  label: 'Đăng xuất',
                   icon: Icons.logout,
                   variant: ButtonVariant.outline,
                   isFullWidth: true,

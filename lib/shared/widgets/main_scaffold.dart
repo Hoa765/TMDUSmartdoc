@@ -49,22 +49,22 @@ class MainScaffold extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home_rounded),
-              label: 'Home',
+              label: 'Trang chủ',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.upload_file_outlined),
               activeIcon: Icon(Icons.upload_file_rounded),
-              label: 'Upload',
+              label: 'Tải lên',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline_rounded),
               activeIcon: Icon(Icons.chat_bubble_rounded),
-              label: 'Chat',
+              label: 'Trò chuyện',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
               activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
+              label: 'Hồ sơ',
             ),
           ],
         ),

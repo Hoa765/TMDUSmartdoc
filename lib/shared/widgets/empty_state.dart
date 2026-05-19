@@ -22,34 +22,34 @@ class EmptyState extends StatelessWidget {
       case EmptyStateType.noDocuments:
         icon = Icons.find_in_page_outlined;
         iconColor = AppColors.primary;
-        title = 'No documents yet';
+        title = 'Chưa có tài liệu';
         description =
-            'Upload your first PDF or presentation to start exploring and learning with AI.';
-        actionLabel = 'Upload Material';
+            'Tải lên tài liệu PDF hoặc bài thuyết trình đầu tiên của bạn để bắt đầu khám phá và học tập với AI.';
+        actionLabel = 'Tải tài liệu lên';
         break;
       case EmptyStateType.noChatHistory:
         icon = Icons.forum_outlined;
         iconColor = AppColors.secondary;
-        title = 'It\'s quiet here';
+        title = 'Nơi này thật yên tĩnh';
         description =
-            'Select a document and ask your first question to spark a conversation.';
-        actionLabel = 'Browse Documents';
+            'Chọn một tài liệu và đặt câu hỏi đầu tiên của bạn để khơi nguồn cuộc trò chuyện.';
+        actionLabel = 'Duyệt tài liệu';
         break;
       case EmptyStateType.noInternet:
         icon = Icons.wifi_off_rounded;
         iconColor = AppColors.warning;
-        title = 'You\'re offline';
+        title = 'Bạn đang ngoại tuyến';
         description =
-            'Please check your internet connection to continue learning with AI.';
-        actionLabel = 'Try Again';
+            'Vui lòng kiểm tra kết nối internet của bạn để tiếp tục học với AI.';
+        actionLabel = 'Thử lại';
         break;
       case EmptyStateType.uploadFailed:
         icon = Icons.cloud_off_rounded;
         iconColor = AppColors.error;
-        title = 'Upload interrupted';
+        title = 'Tải lên bị gián đoạn';
         description =
-            'We couldn\'t process your document. Please make sure it is a supported format.';
-        actionLabel = 'Retry Upload';
+            'Chúng tôi không thể xử lý tài liệu của bạn. Vui lòng đảm bảo đó là định dạng được hỗ trợ.';
+        actionLabel = 'Thử tải lại';
         break;
     }
 

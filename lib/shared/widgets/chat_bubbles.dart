@@ -142,8 +142,8 @@ class TypingIndicator extends StatelessWidget {
           AppSpacing.hMd,
           const Flexible(
             child: AIProcessingLoader(
-              message: 'SmartDoc AI is processing',
-              detail: 'Scanning citations and composing a concise answer',
+              message: 'SmartDoc AI đang xử lý',
+              detail: 'Đang quét tài liệu tham khảo và soạn câu trả lời ngắn gọn',
             ),
           ),
         ],
