@@ -62,7 +62,7 @@ class UploadProvider extends ChangeNotifier {
   /// [fileBytes] — nội dung file dưới dạng bytes (đọc từ FilePicker)
   ///
   /// Trả về true nếu thành công, false nếu lỗi.
-  Future<bool> uploadFile(String fileName, List<int> fileBytes) async {
+  Future<bool> uploadFile(String fileName, List<int> fileBytes, {String? notebookId}) async {
     _isUploading = true;
     _progress = 0.0;
     _currentFileName = fileName;
@@ -99,11 +99,15 @@ class UploadProvider extends ChangeNotifier {
       )
         ..headers['Authorization'] = 'Bearer $idToken'
         ..files.add(http.MultipartFile.fromBytes(
-          'file',           // Tên field trong form (backend đọc: UploadFile = File("file"))
-          fileBytes,        // Nội dung file dạng bytes
+          'file',
+          fileBytes,
           filename: fileName,
           contentType: contentType,
         ));
+
+      if (notebookId != null) {
+        request.fields['notebook_id'] = notebookId;
+      }
 
       _currentStep = 'Đang tải lên và trích xuất dữ liệu...';
       notifyListeners();

@@ -7,6 +7,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/home/providers/document_provider.dart';
 import 'features/chat/providers/chat_provider.dart';
 import 'features/upload/providers/upload_provider.dart';
+import 'features/notebooks/providers/notebook_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -25,6 +26,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DocumentProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => UploadProvider()),
+        ChangeNotifierProvider(create: (_) => NotebookProvider()),
       ],
       child: const TdmuSmartDocApp(),
     ),

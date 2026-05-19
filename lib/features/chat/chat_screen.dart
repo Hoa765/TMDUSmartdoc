@@ -86,7 +86,17 @@ class _ChatScreenState extends State<ChatScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    if (chatProvider.activeDocTitle != null)
+                    if (chatProvider.activeNotebookName != null)
+                      Text(
+                        '📚 ${chatProvider.activeNotebookName!}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    else if (chatProvider.activeDocTitle != null)
                       Text(
                         chatProvider.activeDocTitle!,
                         maxLines: 1,

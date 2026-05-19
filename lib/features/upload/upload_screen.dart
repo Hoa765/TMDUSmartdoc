@@ -7,6 +7,7 @@ import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
 import 'providers/upload_provider.dart';
 import '../home/providers/document_provider.dart';
+import '../notebooks/providers/notebook_provider.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -16,10 +17,20 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
+  String? _selectedNotebookId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<NotebookProvider>().loadNotebooks();
+    });
+  }
+
   Future<void> _pickAndUpload() async {
-    // Capture providers trước mọi await để tránh dùng context sau async gap
     final uploadProvider = context.read<UploadProvider>();
     final documentProvider = context.read<DocumentProvider>();
+    final notebookId = _selectedNotebookId;
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -31,7 +42,11 @@ class _UploadScreenState extends State<UploadScreen> {
     final file = result.files.first;
     if (file.bytes == null) return;
 
-    final success = await uploadProvider.uploadFile(file.name, file.bytes!);
+    final success = await uploadProvider.uploadFile(
+      file.name,
+      file.bytes!,
+      notebookId: notebookId,
+    );
 
     if (!mounted) return;
 
@@ -77,7 +92,12 @@ class _UploadScreenState extends State<UploadScreen> {
                     FadeTransition(opacity: anim, child: child),
                 child: provider.isUploading
                     ? _UploadingCard(provider: provider, key: const ValueKey('up'))
-                    : _IdleCard(onPick: _pickAndUpload, key: const ValueKey('idle')),
+                    : _IdleCard(
+                        key: const ValueKey('idle'),
+                        onPick: _pickAndUpload,
+                        selectedNotebookId: _selectedNotebookId,
+                        onNotebookChanged: (id) => setState(() => _selectedNotebookId = id),
+                      ),
               ),
             ),
           ),
@@ -91,7 +111,15 @@ class _UploadScreenState extends State<UploadScreen> {
 
 class _IdleCard extends StatelessWidget {
   final VoidCallback onPick;
-  const _IdleCard({required this.onPick, super.key});
+  final String? selectedNotebookId;
+  final ValueChanged<String?> onNotebookChanged;
+
+  const _IdleCard({
+    required this.onPick,
+    required this.selectedNotebookId,
+    required this.onNotebookChanged,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +223,14 @@ class _IdleCard extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.lg),
 
+        // Notebook selector
+        _NotebookSelector(
+          selectedNotebookId: selectedNotebookId,
+          onChanged: onNotebookChanged,
+        ).animate().fadeIn(delay: 200.ms),
+
+        const SizedBox(height: AppSpacing.lg),
+
         // Tip
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -225,6 +261,89 @@ class _IdleCard extends StatelessWidget {
     );
   }
 }
+
+// ── Notebook Selector ────────────────────────────────────────────────────────
+
+class _NotebookSelector extends StatelessWidget {
+  final String? selectedNotebookId;
+  final ValueChanged<String?> onChanged;
+
+  const _NotebookSelector({
+    required this.selectedNotebookId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final notebooks = context.watch<NotebookProvider>().notebooks;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Thêm vào Notebook',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: 2),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: AppRadius.control,
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.card,
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: selectedNotebookId,
+              isExpanded: true,
+              hint: const Text('Không chọn (tuỳ chọn)'),
+              icon: const Icon(Icons.expand_more_rounded),
+              onChanged: onChanged,
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Không chọn'),
+                ),
+                ...notebooks.map((nb) {
+                  final color = nb.flutterColor;
+                  return DropdownMenuItem<String?>(
+                    value: nb.id,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            nb.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Format Chip ───────────────────────────────────────────────────────────────
 
 class _FormatChip extends StatelessWidget {
   final IconData icon;

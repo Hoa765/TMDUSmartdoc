@@ -63,12 +63,16 @@ class ChatProvider extends ChangeNotifier {
 
   String? _activeDocId;
   String? _activeDocTitle;
+  String? _activeNotebookId;
+  String? _activeNotebookName;
 
   final List<Conversation> _conversations = [];
   bool _isLoadingConversations = false;
 
   String? get activeDocId => _activeDocId;
   String? get activeDocTitle => _activeDocTitle;
+  String? get activeNotebookId => _activeNotebookId;
+  String? get activeNotebookName => _activeNotebookName;
   List<ChatMessage> get messages => _messages;
   bool get isTyping => _isTyping;
   bool get isLoadingHistory => _isLoadingHistory;
@@ -140,6 +144,22 @@ class ChatProvider extends ChangeNotifier {
   // Giữ tương thích với các nơi đang gọi startNewConversation
   void startNewConversation({String? docId, String? docTitle}) {
     setActiveDoc(docId, docTitle: docTitle);
+  }
+
+  /// Chuyển sang chế độ chat theo notebook — tìm kiếm xuyên suốt tất cả docs trong notebook.
+  void setActiveNotebook(String? notebookId, {String? notebookName}) {
+    _activeNotebookId = notebookId;
+    _activeNotebookName = notebookName;
+    _activeDocId = null;
+    _activeDocTitle = null;
+    _messages.clear();
+    _hasLoadedHistory = false;
+
+    final greeting = notebookName != null
+        ? 'Xin chào! Tôi sẵn sàng trả lời câu hỏi về notebook "$notebookName".'
+        : 'Xin chào! Tôi sẵn sàng trả lời câu hỏi của bạn.';
+    _messages.add(ChatMessage(text: greeting, isAi: true));
+    notifyListeners();
   }
 
   /// Tạo conversation metadata trong Firestore nếu chưa tồn tại.
@@ -346,7 +366,11 @@ final body = <String, dynamic>{
   'message': text,
   'history': history,
 };
-if (_activeDocId != null) body['doc_id'] = _activeDocId;
+if (_activeNotebookId != null) {
+  body['notebook_id'] = _activeNotebookId;
+} else if (_activeDocId != null) {
+  body['doc_id'] = _activeDocId;
+}
 
       final response = await http.post(
         Uri.parse('${AppConstants.backendBaseUrl}/chat/ask'),

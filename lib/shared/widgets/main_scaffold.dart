@@ -10,9 +10,10 @@ class MainScaffold extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/upload')) return 1;
-    if (location.startsWith('/chat')) return 2;
-    if (location.startsWith('/profile')) return 3;
+    if (location.startsWith('/notebooks')) return 1;
+    if (location.startsWith('/upload')) return 2;
+    if (location.startsWith('/chat')) return 3;
+    if (location.startsWith('/profile')) return 4;
     return 0;
   }
 
@@ -22,12 +23,15 @@ class MainScaffold extends StatelessWidget {
         context.go('/home');
         break;
       case 1:
-        context.go('/upload');
+        context.go('/notebooks');
         break;
       case 2:
-        context.go('/chat');
+        context.go('/upload');
         break;
       case 3:
+        context.go('/chat');
+        break;
+      case 4:
         context.go('/profile');
         break;
     }
@@ -45,11 +49,17 @@ class MainScaffold extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: _calculateSelectedIndex(context),
           onTap: (index) => _onItemTapped(index, context),
+          type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home_rounded),
               label: 'Trang chủ',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.auto_stories_outlined),
+              activeIcon: Icon(Icons.auto_stories_rounded),
+              label: 'Notebooks',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.upload_file_outlined),
@@ -59,7 +69,7 @@ class MainScaffold extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline_rounded),
               activeIcon: Icon(Icons.chat_bubble_rounded),
-              label: 'Trò chuyện',
+              label: 'Chat',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
