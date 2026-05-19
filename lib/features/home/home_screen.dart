@@ -283,7 +283,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: InkWell(
               onTap: () {
                 context.read<ChatProvider>().setActiveDoc(doc.id, docTitle: doc.title);
-                context.go('/chat');
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) context.go('/chat');
+                });
               },
               borderRadius: AppRadius.card,
               child: Padding(

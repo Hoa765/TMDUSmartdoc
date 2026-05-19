@@ -173,11 +173,15 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
+                // Lấy provider & scaffoldMessenger TRƯỚC khi pop (tránh dùng context sau async gap)
+                final provider = context.read<NotebookProvider>();
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.of(ctx).pop();
-                final nb = await context.read<NotebookProvider>()
-                    .createNotebook(name, selectedColor, selectedIcon);
-                if (mounted && nb == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                final nb = await provider.createNotebook(
+                  name, selectedColor, selectedIcon,
+                );
+                if (nb == null) {
+                  messenger.showSnackBar(
                     SnackBar(
                       content: const Text('Tạo notebook thất bại'),
                       backgroundColor: AppColors.error,
@@ -303,7 +307,11 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
                                 nb.id,
                                 notebookName: nb.name,
                               );
-                              context.go('/chat');
+                              // Defer navigation to next frame so notifyListeners()
+                              // finishes propagating before the widget tree changes.
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (context.mounted) context.go('/chat');
+                              });
                             },
                           ),
                           childCount: provider.notebooks.length,
@@ -509,7 +517,7 @@ class _NotebookCard extends StatelessWidget {
               title: const Text('Chat với notebook này'),
               onTap: () {
                 Navigator.of(context).pop();
-                onChat();
+                WidgetsBinding.instance.addPostFrameCallback((_) => onChat());
               },
             ),
             ListTile(
@@ -517,7 +525,7 @@ class _NotebookCard extends StatelessWidget {
               title: Text('Xoá notebook', style: TextStyle(color: AppColors.error)),
               onTap: () {
                 Navigator.of(context).pop();
-                onDelete();
+                WidgetsBinding.instance.addPostFrameCallback((_) => onDelete());
               },
             ),
             AppSpacing.vSm,
