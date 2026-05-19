@@ -45,7 +45,9 @@ class AuthProvider extends ChangeNotifier {
   // GoogleSignIn: dùng OAuth 2.0 Web Client ID để xác định ứng dụng với Google
   // clientId bắt buộc trên Web; Android/iOS lấy từ google-services.json
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '197561823479-snjn78rkb2b9874a0pudcbqpkaglum32.apps.googleusercontent.com',
+    // serverClientId = Web OAuth Client ID → Android dùng cái này để lấy idToken
+    // clientId chỉ dùng cho Web/iOS, Android bỏ qua
+    serverClientId: '197561823479-snjn78rkb2b9874a0pudcbqpkaglum32.apps.googleusercontent.com',
   );
 
   User? _user;

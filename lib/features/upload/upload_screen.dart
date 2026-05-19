@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
 import 'providers/upload_provider.dart';
-import '../chat/providers/chat_provider.dart';
+import '../home/providers/document_provider.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -19,7 +19,7 @@ class _UploadScreenState extends State<UploadScreen> {
   Future<void> _pickAndUpload() async {
     // Capture providers trước mọi await để tránh dùng context sau async gap
     final uploadProvider = context.read<UploadProvider>();
-    final chatProvider = context.read<ChatProvider>();
+    final documentProvider = context.read<DocumentProvider>();
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -36,12 +36,10 @@ class _UploadScreenState extends State<UploadScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Mở cuộc hội thoại riêng cho tài liệu vừa upload, navigate thẳng vào chat
-      chatProvider.startNewConversation(
-        docId: uploadProvider.lastDocumentId,
-        docTitle: file.name,
-      );
-      context.go('/chat');
+      // Refresh danh sách tài liệu → home screen hiển thị file vừa upload
+      await documentProvider.refresh();
+      if (!mounted) return;
+      context.go('/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

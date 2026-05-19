@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
+import '../../features/chat/providers/chat_provider.dart';
 import 'providers/document_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,12 +46,16 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.cloud_upload_outlined),
         label: const Text(
-          'Upload',
+          'Tải lên',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ).appScaleIn(delay: const Duration(milliseconds: 320)),
       body: SafeArea(
-        child: CustomScrollView(
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => context.read<DocumentProvider>().refresh(),
+          child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -66,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Documents',
+                                'Tài liệu',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.displaySmall
@@ -74,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               AppSpacing.vXs,
                               Text(
-                                'Manage and chat with your materials.',
+                                'Quản lý và trò chuyện với tài liệu của bạn.',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodyMedium,
@@ -102,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             .read<DocumentProvider>()
                             .setSearchQuery(val),
                         decoration: InputDecoration(
-                          hintText: 'Search documents...',
+                          hintText: 'Tìm kiếm tài liệu...',
                           prefixIcon: const Icon(
                             Icons.search,
                             color: AppColors.textSecondary,
@@ -145,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            'Recent Documents',
+                            'Tài liệu gần đây',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleLarge
@@ -154,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         AppSpacing.hMd,
                         Text(
-                          '${docs.length} total',
+                          'Tổng số: ${docs.length}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -206,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );
@@ -275,7 +281,10 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.transparent,
             borderRadius: AppRadius.card,
             child: InkWell(
-              onTap: () => context.go('/chat'),
+              onTap: () {
+                context.read<ChatProvider>().setActiveDoc(doc.id, docTitle: doc.title);
+                context.go('/chat');
+              },
               borderRadius: AppRadius.card,
               child: Padding(
                 padding: cardPadding,
@@ -331,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         AppSpacing.hXs,
                         Flexible(
                           child: Text(
-                            '${doc.pageCount} pages',
+                            '${doc.pageCount} trang',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall,
