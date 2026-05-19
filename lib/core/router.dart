@@ -29,6 +29,7 @@
 //   → Hiệu ứng "trôi nhẹ lên" kết hợp fade-in
 // =============================================================================
 
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -43,6 +44,20 @@ import '../features/profile/profile_screen.dart';
 import '../shared/widgets/main_scaffold.dart';
 import 'constants.dart';
 
+/// Listenable bọc một Stream — GoRouter gọi lại redirect mỗi khi stream emit.
+/// Dùng cho authStateChanges() để router re-evaluate guard sau login/logout.
+class _GoRouterRefreshStream extends ChangeNotifier {
+  late final StreamSubscription<dynamic> _sub;
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    _sub = stream.listen((_) => notifyListeners());
+  }
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}
+
 // Key để truy cập Navigator gốc từ bất kỳ đâu trong app
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -56,7 +71,10 @@ const _protectedRoutes = ['/home', '/upload', '/chat', '/profile'];
 
 final router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/splash', // App luôn bắt đầu ở SplashScreen
+  initialLocation: '/splash',
+  refreshListenable: _GoRouterRefreshStream(
+    FirebaseAuth.instance.authStateChanges(),
+  ),
 
   /// Auth Guard — chạy trước mỗi lần điều hướng.
   ///
