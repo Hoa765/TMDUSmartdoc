@@ -247,7 +247,12 @@ class ChatProvider extends ChangeNotifier {
           final data = doc.data() as Map<String, dynamic>;
           final List<dynamic> citData = data['citations'] ?? [];
           final citations = citData
-              .map((c) => CitationData(c['label'] ?? '', c['value'] ?? ''))
+              .map((c) => CitationData(
+                    c['label'] ?? '',
+                    c['value'] ?? '',
+                    snippet: c['snippet'] ?? '',
+                    filename: c['filename'] ?? '',
+                  ))
               .toList();
           _messages.add(ChatMessage(
             text: data['text'] ?? '',
@@ -309,7 +314,7 @@ class ChatProvider extends ChangeNotifier {
               'text': mockMsg.text,
               'isAi': true,
               'timestamp': FieldValue.serverTimestamp(),
-              'citations': mockMsg.citations.map((c) => {'label': c.label, 'value': c.value}).toList(),
+              'citations': mockMsg.citations.map((c) => {'label': c.label, 'value': c.value, 'snippet': c.snippet, 'filename': c.filename}).toList(),
             });
             _updateLastMessage(mockMsg.text);
           } catch (e) {
@@ -323,8 +328,25 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       final idToken = await user.getIdToken();
-      final body = <String, dynamic>{'message': text};
-      if (_activeDocId != null) body['doc_id'] = _activeDocId;
+      // Build history — bỏ tin chào, lấy 8 tin gần nhất
+final history = _messages
+    .where((m) => !m.text.startsWith('Xin chào!'))
+    .toList()
+    .reversed
+    .take(8)
+    .toList()
+    .reversed
+    .map((m) => {
+          'role': m.isAi ? 'model' : 'user',
+          'content': m.text,
+        })
+    .toList();
+
+final body = <String, dynamic>{
+  'message': text,
+  'history': history,
+};
+if (_activeDocId != null) body['doc_id'] = _activeDocId;
 
       final response = await http.post(
         Uri.parse('${AppConstants.backendBaseUrl}/chat/ask'),
@@ -342,7 +364,12 @@ class ChatProvider extends ChangeNotifier {
         final String answer = data['answer'] ?? '';
         final List<dynamic> citData = data['citations'] ?? [];
         final citations = citData
-            .map((c) => CitationData(c['label'] ?? 'Trang', c['value']?.toString() ?? ''))
+            .map((c) => CitationData(
+                  c['label'] ?? 'Nguồn',
+                  c['value']?.toString() ?? '',
+                  snippet: c['snippet'] ?? '',
+                  filename: c['filename'] ?? '',
+                ))
             .toList();
 
         final aiMsg = ChatMessage(text: answer, isAi: true, citations: citations);
@@ -353,7 +380,7 @@ class ChatProvider extends ChangeNotifier {
             'text': answer,
             'isAi': true,
             'timestamp': FieldValue.serverTimestamp(),
-            'citations': citations.map((c) => {'label': c.label, 'value': c.value}).toList(),
+            'citations': citations.map((c) => {'label': c.label, 'value': c.value, 'snippet': c.snippet, 'filename': c.filename}).toList(),
           });
           _updateLastMessage(answer);
         }

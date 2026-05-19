@@ -6,7 +6,15 @@ import 'skeleton_widgets.dart';
 class CitationData {
   final String label;
   final String value;
-  CitationData(this.label, this.value);
+  final String snippet;
+  final String filename;
+
+  CitationData(
+    this.label,
+    this.value, {
+    this.snippet = '',
+    this.filename = '',
+  });
 }
 
 class AIChatBubble extends StatelessWidget {
