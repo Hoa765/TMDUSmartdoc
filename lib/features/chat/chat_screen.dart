@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants.dart';
 import '../../shared/widgets/widgets.dart';
+import '../home/providers/document_provider.dart';
+import '../notebooks/providers/notebook_provider.dart';
 import 'providers/chat_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -22,7 +24,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ChatProvider>().loadHistory();
+      if (mounted) {
+        context.read<ChatProvider>().loadHistory();
+        context.read<DocumentProvider>().loadDocuments();
+        context.read<NotebookProvider>().loadNotebooks();
+      }
     });
   }
 
@@ -46,6 +52,164 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
+  }
+
+  /// Bottom sheet chọn tài liệu / notebook làm ngữ cảnh hỏi đáp.
+  void _showContextPicker(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final docs = ctx.read<DocumentProvider>().documents;
+        final notebooks = ctx.read<NotebookProvider>().notebooks;
+        final chatProvider = ctx.read<ChatProvider>();
+
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.55,
+          maxChildSize: 0.9,
+          minChildSize: 0.3,
+          builder: (_, scrollCtrl) => Column(
+            children: [
+              // Handle bar
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      'Chọn nguồn hỏi đáp',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (chatProvider.activeDocId != null ||
+                        chatProvider.activeNotebookId != null)
+                      TextButton.icon(
+                        onPressed: () {
+                          chatProvider.clearActiveContext();
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.clear_rounded, size: 16),
+                        label: const Text('Bỏ chọn'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: [
+                    // ── Notebooks ────────────────────────────────────────
+                    if (notebooks.isNotEmpty) ...[
+                      _PickerSectionHeader(
+                        icon: Icons.auto_stories_rounded,
+                        label: 'Notebooks',
+                      ),
+                      ...notebooks.map((nb) {
+                        final nbColor = nb.flutterColor;
+                        final isActive =
+                            chatProvider.activeNotebookId == nb.id;
+                        return _PickerTile(
+                          isActive: isActive,
+                          leading: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: nbColor.withValues(alpha: 0.15),
+                              borderRadius: AppRadius.control,
+                            ),
+                            child: Icon(Icons.auto_stories_rounded,
+                                size: 18, color: nbColor),
+                          ),
+                          title: nb.name,
+                          subtitle: nb.summary.isNotEmpty
+                              ? nb.summary
+                              : '${nb.suggestions.length} gợi ý AI',
+                          onTap: () {
+                            chatProvider.setActiveNotebook(nb.id,
+                                notebookName: nb.name);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // ── Tài liệu ─────────────────────────────────────────
+                    _PickerSectionHeader(
+                      icon: Icons.article_outlined,
+                      label: 'Tài liệu',
+                    ),
+                    if (docs.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Text(
+                          'Chưa có tài liệu nào. Hãy tải lên trước.',
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.textTertiary,
+                              ),
+                        ),
+                      )
+                    else
+                      ...docs.map((doc) {
+                        final isActive = chatProvider.activeDocId == doc.id;
+                        return _PickerTile(
+                          isActive: isActive,
+                          leading: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: (doc.type == 'pdf'
+                                      ? AppColors.documentPdf
+                                      : AppColors.documentSlide)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: AppRadius.control,
+                            ),
+                            child: Icon(
+                              doc.type == 'pdf'
+                                  ? Icons.picture_as_pdf_rounded
+                                  : Icons.slideshow_rounded,
+                              size: 18,
+                              color: doc.type == 'pdf'
+                                  ? AppColors.documentPdf
+                                  : AppColors.documentSlide,
+                            ),
+                          ),
+                          title: doc.title,
+                          subtitle: '${doc.pageCount} trang · ${doc.date}',
+                          onTap: () {
+                            chatProvider.setActiveDoc(doc.id,
+                                docTitle: doc.title);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -162,7 +326,198 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// Drawer bên phải — danh sách tất cả hội thoại của user.
+  Widget _buildInputArea(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    final isCompact = AppBreakpoints.isCompact(context);
+    final hasContext = chatProvider.activeDocId != null ||
+        chatProvider.activeNotebookId != null;
+
+    final contextLabel = chatProvider.activeNotebookName != null
+        ? chatProvider.activeNotebookName!
+        : chatProvider.activeDocTitle;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? AppSpacing.sm : AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ).copyWith(
+        bottom: AppSpacing.sm + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: AppShadows.up,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Context chip — hiển thị khi đã chọn tài liệu/notebook
+              if (hasContext && contextLabel != null) ...[
+                GestureDetector(
+                  onTap: () => _showContextPicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          chatProvider.activeNotebookId != null
+                              ? Icons.auto_stories_rounded
+                              : Icons.article_outlined,
+                          size: 13,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 5),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth:
+                                MediaQuery.of(context).size.width * 0.55,
+                          ),
+                          child: Text(
+                            contextLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        GestureDetector(
+                          onTap: () =>
+                              context.read<ChatProvider>().clearActiveContext(),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+
+              // Input row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // "+" button — chọn tài liệu
+                  AnimatedContainer(
+                    duration: AppMotion.fast,
+                    decoration: BoxDecoration(
+                      color: hasContext
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : AppColors.surfaceVariant,
+                      borderRadius: AppRadius.control,
+                      border: Border.all(
+                        color: hasContext
+                            ? AppColors.primary.withValues(alpha: 0.4)
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        hasContext
+                            ? Icons.swap_horiz_rounded
+                            : Icons.add_rounded,
+                        color: hasContext
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                        size: 22,
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      constraints: const BoxConstraints(
+                          minWidth: 44, minHeight: 44),
+                      onPressed: () => _showContextPicker(context),
+                    ),
+                  ),
+                  AppSpacing.hSm,
+
+                  // Text field
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      minLines: 1,
+                      maxLines: 5,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _handleSend(context),
+                      decoration: InputDecoration(
+                        hintText: chatProvider.activeNotebookName != null
+                            ? 'Hỏi về notebook...'
+                            : chatProvider.activeDocTitle != null
+                                ? 'Hỏi về tài liệu...'
+                                : 'Nhấn + để chọn tài liệu...',
+                        border: OutlineInputBorder(
+                          borderRadius: AppRadius.control,
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: AppRadius.control,
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: AppRadius.control,
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: AppColors.surfaceVariant,
+                        contentPadding: AppSpacing.inputPadding,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.hSm,
+
+                  // Send button
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _controller,
+                    builder: (context, value, child) {
+                      final hasText = value.text.trim().isNotEmpty;
+                      return AnimatedContainer(
+                        duration: AppMotion.fast,
+                        curve: AppMotion.curve,
+                        decoration: BoxDecoration(
+                          color: hasText
+                              ? AppColors.primary
+                              : AppColors.surfaceVariant,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.arrow_upward_rounded,
+                            color: hasText
+                                ? Colors.white
+                                : AppColors.textTertiary,
+                          ),
+                          onPressed:
+                              hasText ? () => _handleSend(context) : null,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildConversationsDrawer(BuildContext context) {
     return Drawer(
       child: Column(
@@ -184,9 +539,7 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, chatProvider, _) {
                 if (chatProvider.isLoadingConversations) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                    ),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
 
@@ -206,7 +559,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           Text(
                             'Chưa có hội thoại nào.\nUpload tài liệu để bắt đầu.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
                           AppSpacing.vLg,
@@ -280,18 +635,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.textTertiary,
-                                    ),
+                                    ?.copyWith(color: AppColors.textTertiary),
                               )
                             : null,
                         trailing: Text(
                           _formatTime(conv.updatedAt),
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textTertiary,
-                                    fontSize: 11,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: AppColors.textTertiary,
+                                fontSize: 11,
+                              ),
                         ),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -320,86 +675,83 @@ class _ChatScreenState extends State<ChatScreen> {
     if (diff.inDays < 7) return '${diff.inDays} ngày';
     return '${dt.day}/${dt.month}';
   }
+}
 
-  Widget _buildInputArea(BuildContext context) {
-    final isCompact = AppBreakpoints.isCompact(context);
+// ── Picker widgets ─────────────────────────────────────────────────────────────
 
-    return Container(
-      padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md)
-          .copyWith(
-            bottom: (isCompact ? AppSpacing.sm : AppSpacing.md) +
-                MediaQuery.of(context).padding.bottom,
-          ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: AppShadows.up,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _handleSend(context),
-                  decoration: InputDecoration(
-                    hintText: context.watch<ChatProvider>().activeDocId != null
-                        ? 'Hỏi về tài liệu...'
-                        : 'Chọn tài liệu để bắt đầu...',
-                    border: OutlineInputBorder(
-                      borderRadius: AppRadius.control,
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: AppRadius.control,
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: AppRadius.control,
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.surfaceVariant,
-                    contentPadding: AppSpacing.inputPadding,
-                  ),
+class _PickerSectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _PickerSectionHeader({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.4,
                 ),
-              ),
-              AppSpacing.hSm,
-              ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _controller,
-                builder: (context, value, child) {
-                  final hasText = value.text.trim().isNotEmpty;
-                  return AnimatedContainer(
-                    duration: AppMotion.fast,
-                    curve: AppMotion.curve,
-                    decoration: BoxDecoration(
-                      color: hasText
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.arrow_upward_rounded,
-                        color: hasText ? Colors.white : AppColors.textTertiary,
-                      ),
-                      onPressed: hasText ? () => _handleSend(context) : null,
-                    ),
-                  );
-                },
-              ),
-            ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickerTile extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final String subtitle;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _PickerTile({
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      selected: isActive,
+      selectedTileColor: AppColors.primary.withValues(alpha: 0.08),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: leading,
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+          color: isActive ? AppColors.primary : AppColors.textPrimary,
         ),
       ),
+      subtitle: Text(
+        subtitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textTertiary,
+            ),
+      ),
+      trailing: isActive
+          ? const Icon(Icons.check_circle_rounded,
+              color: AppColors.primary, size: 20)
+          : null,
+      onTap: onTap,
     );
   }
 }

@@ -8,6 +8,7 @@ class Notebook {
   final String id;
   final String name;
   final String color;
+  final String icon;
   final String summary;
   final List<String> suggestions;
   final DateTime updatedAt;
@@ -16,6 +17,7 @@ class Notebook {
     required this.id,
     required this.name,
     required this.color,
+    this.icon = 'school',
     this.summary = '',
     this.suggestions = const [],
     required this.updatedAt,
@@ -74,6 +76,7 @@ class NotebookProvider extends ChangeNotifier {
             id: nb['id'] ?? '',
             name: nb['name'] ?? 'Notebook',
             color: nb['color'] ?? '#6750A4',
+            icon: nb['icon'] ?? 'school',
             summary: nb['summary'] ?? '',
             suggestions: suggestions,
             updatedAt: DateTime.tryParse(nb['updated_at'] ?? '') ?? DateTime.now(),
@@ -90,7 +93,7 @@ class NotebookProvider extends ChangeNotifier {
     }
   }
 
-  Future<Notebook?> createNotebook(String name, String color) async {
+  Future<Notebook?> createNotebook(String name, String color, String icon) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
@@ -102,7 +105,7 @@ class NotebookProvider extends ChangeNotifier {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
         },
-        body: json.encode({'name': name, 'color': color}),
+        body: json.encode({'name': name, 'color': color, 'icon': icon}),
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
@@ -111,6 +114,7 @@ class NotebookProvider extends ChangeNotifier {
           id: data['id'] ?? '',
           name: data['name'] ?? name,
           color: data['color'] ?? color,
+          icon: data['icon'] ?? icon,
           updatedAt: DateTime.now(),
         );
         _notebooks.insert(0, nb);

@@ -6,6 +6,28 @@ import '../../shared/widgets/widgets.dart';
 import 'providers/notebook_provider.dart';
 import '../chat/providers/chat_provider.dart';
 
+// Danh sách icon đại diện cho từng lĩnh vực học thuật
+const _nbIcons = <(String, IconData, String)>[
+  ('school',     Icons.school_rounded,             'Tổng quát'),
+  ('book',       Icons.menu_book_rounded,           'Văn học'),
+  ('science',    Icons.science_rounded,             'Khoa học'),
+  ('math',       Icons.calculate_rounded,           'Toán'),
+  ('economics',  Icons.trending_up_rounded,         'Kinh tế'),
+  ('computer',   Icons.computer_rounded,            'Công nghệ'),
+  ('medical',    Icons.medical_services_rounded,    'Y tế'),
+  ('history',    Icons.history_edu_rounded,         'Lịch sử'),
+  ('art',        Icons.palette_rounded,             'Nghệ thuật'),
+  ('language',   Icons.translate_rounded,           'Ngoại ngữ'),
+  ('law',        Icons.gavel_rounded,               'Pháp luật'),
+  ('idea',       Icons.lightbulb_rounded,           'Ý tưởng'),
+];
+
+IconData _iconFromKey(String key) =>
+    _nbIcons.firstWhere((e) => e.$1 == key, orElse: () => _nbIcons.first).$2;
+
+String _iconLabel(String key) =>
+    _nbIcons.firstWhere((e) => e.$1 == key, orElse: () => _nbIcons.first).$3;
+
 class NotebooksScreen extends StatefulWidget {
   const NotebooksScreen({super.key});
 
@@ -25,6 +47,7 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
   Future<void> _showCreateDialog() async {
     final nameController = TextEditingController();
     String selectedColor = '#6750A4';
+    String selectedIcon = 'school';
     const colors = [
       '#6750A4', '#006874', '#7D5260', '#B1416B',
       '#386A20', '#984716',
@@ -37,60 +60,109 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
           backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.card),
           title: const Text('Tạo notebook mới'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Tên notebook...',
-                  border: OutlineInputBorder(borderRadius: AppRadius.control),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: AppRadius.control,
-                    borderSide: BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: AppRadius.control,
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  contentPadding: AppSpacing.inputPadding,
-                ),
-              ),
-              AppSpacing.vMd,
-              Text('Màu sắc', style: Theme.of(ctx).textTheme.labelMedium),
-              AppSpacing.vSm,
-              Wrap(
-                spacing: 10,
-                children: colors.map((hex) {
-                  final color = _parseColor(hex);
-                  final isSelected = hex == selectedColor;
-                  return GestureDetector(
-                    onTap: () => setModalState(() => selectedColor = hex),
-                    child: AnimatedContainer(
-                      duration: AppMotion.fast,
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected ? AppColors.onSurface : Colors.transparent,
-                          width: 2.5,
-                        ),
-                        boxShadow: isSelected ? AppShadows.card : null,
-                      ),
-                      child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white, size: 16)
-                          : null,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'Tên notebook...',
+                    border: OutlineInputBorder(borderRadius: AppRadius.control),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: AppRadius.control,
+                      borderSide: BorderSide(color: AppColors.border),
                     ),
-                  );
-                }).toList(),
-              ),
-            ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: AppRadius.control,
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surfaceVariant,
+                    contentPadding: AppSpacing.inputPadding,
+                  ),
+                ),
+                AppSpacing.vMd,
+                Text('Màu sắc', style: Theme.of(ctx).textTheme.labelMedium),
+                AppSpacing.vSm,
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: colors.map((hex) {
+                    final color = _parseColor(hex);
+                    final isSelected = hex == selectedColor;
+                    return GestureDetector(
+                      onTap: () => setModalState(() => selectedColor = hex),
+                      child: AnimatedContainer(
+                        duration: AppMotion.fast,
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? AppColors.textPrimary : Colors.transparent,
+                            width: 2.5,
+                          ),
+                          boxShadow: isSelected ? AppShadows.card : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, color: Colors.white, size: 18)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                AppSpacing.vMd,
+                Text('Biểu tượng', style: Theme.of(ctx).textTheme.labelMedium),
+                AppSpacing.vSm,
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _nbIcons.map((entry) {
+                    final isSelected = entry.$1 == selectedIcon;
+                    final accent = _parseColor(selectedColor);
+                    return GestureDetector(
+                      onTap: () => setModalState(() => selectedIcon = entry.$1),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: AppMotion.fast,
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isSelected ? accent : AppColors.surfaceVariant,
+                              borderRadius: AppRadius.control,
+                              border: Border.all(
+                                color: isSelected ? accent : AppColors.border,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Icon(
+                              entry.$2,
+                              size: 20,
+                              color: isSelected ? Colors.white : AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            entry.$3,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: isSelected ? accent : AppColors.textTertiary,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -102,7 +174,8 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
                 Navigator.of(ctx).pop();
-                final nb = await context.read<NotebookProvider>().createNotebook(name, selectedColor);
+                final nb = await context.read<NotebookProvider>()
+                    .createNotebook(name, selectedColor, selectedIcon);
                 if (mounted && nb == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -338,7 +411,7 @@ class _NotebookCard extends StatelessWidget {
                               borderRadius: AppRadius.control,
                             ),
                             child: Icon(
-                              Icons.auto_stories_rounded,
+                              _iconFromKey(notebook.icon),
                               size: 18,
                               color: nbColor,
                             ),

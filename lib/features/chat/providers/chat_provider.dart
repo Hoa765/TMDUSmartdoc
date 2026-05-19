@@ -101,7 +101,7 @@ class ChatProvider extends ChangeNotifier {
 
   ChatProvider() {
     _messages.add(ChatMessage(
-      text: 'Xin chào! Chọn tài liệu từ màn hình chính để bắt đầu hội thoại.',
+      text: 'Xin chào! Nhấn nút + để chọn tài liệu hoặc notebook cần hỏi.',
       isAi: true,
     ));
     // Tải danh sách hội thoại ngay khi user đăng nhập
@@ -144,6 +144,21 @@ class ChatProvider extends ChangeNotifier {
   // Giữ tương thích với các nơi đang gọi startNewConversation
   void startNewConversation({String? docId, String? docTitle}) {
     setActiveDoc(docId, docTitle: docTitle);
+  }
+
+  /// Xoá ngữ cảnh — trở về chế độ chưa chọn tài liệu/notebook.
+  void clearActiveContext() {
+    _activeDocId = null;
+    _activeDocTitle = null;
+    _activeNotebookId = null;
+    _activeNotebookName = null;
+    _messages.clear();
+    _hasLoadedHistory = false;
+    _messages.add(ChatMessage(
+      text: 'Xin chào! Nhấn nút + để chọn tài liệu hoặc notebook cần hỏi.',
+      isAi: true,
+    ));
+    notifyListeners();
   }
 
   /// Chuyển sang chế độ chat theo notebook — tìm kiếm xuyên suốt tất cả docs trong notebook.
