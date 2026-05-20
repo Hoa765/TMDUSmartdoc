@@ -237,12 +237,15 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreateDialog,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Tạo mới', style: TextStyle(fontWeight: FontWeight.w600)),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 82),
+        child: FloatingActionButton.extended(
+          onPressed: _showCreateDialog,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Tạo mới', style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
       ).appScaleIn(delay: const Duration(milliseconds: 300)),
       body: SafeArea(
         child: RefreshIndicator(
@@ -301,6 +304,10 @@ class _NotebooksScreenState extends State<NotebooksScreen> {
                             notebook: provider.notebooks[index],
                             index: index,
                             onDelete: () => _confirmDelete(provider.notebooks[index]),
+                            onTap: () {
+                              final nb = provider.notebooks[index];
+                              context.push('/notebooks/${nb.id}');
+                            },
                             onChat: () {
                               final nb = provider.notebooks[index];
                               context.read<ChatProvider>().setActiveNotebook(
@@ -367,12 +374,14 @@ class _NotebookCard extends StatelessWidget {
   final int index;
   final VoidCallback onDelete;
   final VoidCallback onChat;
+  final VoidCallback onTap;
 
   const _NotebookCard({
     required this.notebook,
     required this.index,
     required this.onDelete,
     required this.onChat,
+    required this.onTap,
   });
 
   @override
@@ -384,108 +393,121 @@ class _NotebookCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
         borderRadius: AppRadius.card,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: nbColor.withValues(alpha: 0.2), width: 1.5),
         boxShadow: AppShadows.card,
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
         borderRadius: AppRadius.card,
-        child: InkWell(
-          onTap: onChat,
-          borderRadius: AppRadius.card,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Colored header strip
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: nbColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                // Soft background glow
+                Positioned(
+                  right: -24,
+                  top: -24,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: nbColor.withValues(alpha: 0.06),
+                    ),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: AppSpacing.cardPaddingCompact,
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(7),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: nbColor.withValues(alpha: 0.12),
-                              borderRadius: AppRadius.control,
+                              color: nbColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                             child: Icon(
                               _iconFromKey(notebook.icon),
-                              size: 18,
+                              size: 26,
                               color: nbColor,
                             ),
                           ),
                           const Spacer(),
                           IconButton(
-                            icon: const Icon(Icons.more_vert, size: 18),
+                            icon: const Icon(Icons.more_horiz_rounded),
                             color: AppColors.textSecondary,
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () => _showOptions(context),
                           ),
                         ],
                       ),
-                      AppSpacing.vSm,
+                      const Spacer(),
                       Text(
                         notebook.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                           height: 1.2,
                         ),
                       ),
                       if (hasSummary) ...[
                         AppSpacing.vXs,
-                        Expanded(
-                          child: Text(
-                            notebook.summary,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.4,
-                            ),
+                        Text(
+                          notebook.summary,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.4,
                           ),
                         ),
-                      ] else
-                        const Spacer(),
-                      if (notebook.suggestions.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                      ] else ...[
+                        AppSpacing.vXs,
+                        Text(
+                          'Chưa có tài liệu',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                      if (notebook.suggestions.isNotEmpty) ...[
+                        AppSpacing.vSm,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: nbColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.lightbulb_outline_rounded,
-                                size: 13,
-                                color: nbColor,
-                              ),
-                              AppSpacing.hXs,
+                              Icon(Icons.auto_awesome_rounded, size: 12, color: nbColor),
+                              const SizedBox(width: 4),
                               Text(
-                                '${notebook.suggestions.length} gợi ý',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                '${notebook.suggestions.length} gợi ý AI',
+                                style: TextStyle(
                                   color: nbColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -495,11 +517,12 @@ class _NotebookCard extends StatelessWidget {
   void _showOptions(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -513,10 +536,18 @@ class _NotebookCard extends StatelessWidget {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('Xem chi tiết'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                WidgetsBinding.instance.addPostFrameCallback((_) => onTap());
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.chat_bubble_outline_rounded),
               title: const Text('Chat với notebook này'),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(sheetContext).pop();
                 WidgetsBinding.instance.addPostFrameCallback((_) => onChat());
               },
             ),
@@ -524,7 +555,7 @@ class _NotebookCard extends StatelessWidget {
               leading: Icon(Icons.delete_outline_rounded, color: AppColors.error),
               title: Text('Xoá notebook', style: TextStyle(color: AppColors.error)),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(sheetContext).pop();
                 WidgetsBinding.instance.addPostFrameCallback((_) => onDelete());
               },
             ),

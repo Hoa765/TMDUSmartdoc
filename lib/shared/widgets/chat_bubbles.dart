@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants.dart';
+import '../../features/chat/providers/chat_provider.dart';
 import 'citation_chip.dart';
 import 'skeleton_widgets.dart';
 
@@ -20,11 +23,13 @@ class CitationData {
 class AIChatBubble extends StatelessWidget {
   final String text;
   final List<CitationData> citations;
+  final String? question;
 
   const AIChatBubble({
     super.key,
     required this.text,
     this.citations = const [],
+    this.question,
   });
 
   @override
@@ -79,6 +84,51 @@ class AIChatBubble extends StatelessWidget {
                           .toList(),
                     ),
                   ],
+                  AppSpacing.vMd,
+                  const Divider(height: 1),
+                  AppSpacing.vXs,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.copy_rounded, size: 16),
+                        tooltip: 'Sao chép',
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
+                        color: AppColors.textTertiary,
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: text));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã sao chép vào bộ nhớ tạm'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                      if (question != null) ...[
+                        AppSpacing.hMd,
+                        IconButton(
+                          icon: const Icon(Icons.bookmark_add_outlined, size: 17),
+                          tooltip: 'Lưu câu trả lời',
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                          color: AppColors.textTertiary,
+                          onPressed: () async {
+                            final success = await context.read<ChatProvider>().saveAnswer(question!, text);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(success ? 'Đã lưu câu trả lời thành công!' : 'Lưu câu trả lời thất bại'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),

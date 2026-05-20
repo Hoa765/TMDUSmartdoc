@@ -60,7 +60,7 @@ class CustomButton extends StatelessWidget {
           Icon(icon, size: 20),
           AppSpacing.hSm,
         ],
-        if (isFullWidth) Flexible(child: labelText) else labelText,
+        Flexible(child: labelText),
       ],
     );
 

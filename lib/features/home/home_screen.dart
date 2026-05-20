@@ -40,14 +40,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/upload'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.cloud_upload_outlined),
-        label: const Text(
-          'Tải lên',
-          style: TextStyle(fontWeight: FontWeight.w600),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 82),
+        child: FloatingActionButton.extended(
+          onPressed: () => context.go('/upload'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.cloud_upload_outlined),
+          label: const Text(
+            'Tải lên',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
       ).appScaleIn(delay: const Duration(milliseconds: 320)),
       body: SafeArea(

@@ -37,6 +37,7 @@ class MockDocument {
   final int pageCount;
   final String date;
   final String type; // "pdf" hoặc "ppt" (ảnh hưởng icon hiển thị)
+  final String? notebookId;
 
   MockDocument({
     required this.id,
@@ -44,6 +45,7 @@ class MockDocument {
     required this.pageCount,
     required this.date,
     required this.type,
+    this.notebookId,
   });
 }
 
@@ -65,6 +67,7 @@ class DocumentProvider extends ChangeNotifier {
       pageCount: 24,
       date: '2 ngày trước',
       type: 'pdf',
+      notebookId: '1',
     ),
     MockDocument(
       id: '2',
@@ -72,6 +75,7 @@ class DocumentProvider extends ChangeNotifier {
       pageCount: 45,
       date: '3 ngày trước',
       type: 'pdf',
+      notebookId: '1',
     ),
     MockDocument(
       id: '3',
@@ -79,6 +83,7 @@ class DocumentProvider extends ChangeNotifier {
       pageCount: 12,
       date: '1 tuần trước',
       type: 'ppt',
+      notebookId: '1',
     ),
     MockDocument(
       id: '4',
@@ -177,6 +182,7 @@ class DocumentProvider extends ChangeNotifier {
               pageCount: doc['page_count'] ?? 0,
               date: doc['created_at'] ?? 'Vừa xong',
               type: doc['type'] ?? 'pdf',
+              notebookId: doc['notebook_id']?.toString(),
             ),
           );
         }

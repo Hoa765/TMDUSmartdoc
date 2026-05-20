@@ -327,6 +327,7 @@ class ChatProvider extends ChangeNotifier {
           'citations': [],
         });
         _updateLastMessage(text);
+        _incrementDailyActivity();
       } catch (e) {
         debugPrint('Lỗi lưu tin nhắn user: $e');
       }
@@ -446,6 +447,122 @@ if (_activeNotebookId != null) {
     } finally {
       notifyListeners();
     }
+  }
+
+  /// Lưu một câu trả lời vào mục "Câu trả lời đã lưu" (Saved Answers)
+  Future<bool> saveAnswer(String question, String answer) async {
+    final uid = _userId;
+    if (uid == null) return false;
+
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('saved_answers')
+          .doc(); // Auto ID
+
+      await docRef.set({
+        'id': docRef.id,
+        'question': question,
+        'answer': answer,
+        'savedAt': FieldValue.serverTimestamp(),
+        'docTitle': _activeDocTitle ?? _activeNotebookName ?? 'Hỏi đáp tự do',
+      });
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi lưu câu trả lời: $e');
+      return false;
+    }
+  }
+
+  /// Lấy danh sách câu trả lời đã lưu
+  Stream<QuerySnapshot> getSavedAnswersStream() {
+    final uid = _userId;
+    if (uid == null) return const Stream.empty();
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('saved_answers')
+        .orderBy('savedAt', descending: true)
+        .snapshots();
+  }
+
+  /// Xoá câu trả lời đã lưu
+  Future<bool> deleteSavedAnswer(String docId) async {
+    final uid = _userId;
+    if (uid == null) return false;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('saved_answers')
+          .doc(docId)
+          .delete();
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi xoá câu trả lời đã lưu: $e');
+      return false;
+    }
+  }
+
+  /// Xoá một cuộc hội thoại (và metadata của nó)
+  Future<bool> deleteConversation(String docId) async {
+    final uid = _userId;
+    if (uid == null) return false;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('conversations')
+          .doc(docId)
+          .delete();
+      
+      _conversations.removeWhere((c) => c.docId == docId);
+      if (_activeDocId == docId) {
+        clearActiveContext();
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi xoá hội thoại: $e');
+      return false;
+    }
+  }
+
+  /// Tăng số lượng câu hỏi học tập trong ngày
+  Future<void> _incrementDailyActivity() async {
+    final uid = _userId;
+    if (uid == null) return;
+    try {
+      final now = DateTime.now();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final ref = FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('study_activity')
+          .doc(dateStr);
+
+      await ref.set({
+        'queryCount': FieldValue.increment(1),
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': dateStr,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Lỗi cập nhật activity: $e');
+    }
+  }
+
+  /// Lấy danh sách hoạt động học tập trong 7 ngày gần nhất
+  Stream<QuerySnapshot> getWeeklyActivityStream() {
+    final uid = _userId;
+    if (uid == null) return const Stream.empty();
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('study_activity')
+        .orderBy('date', descending: true)
+        .limit(7)
+        .snapshots();
   }
 
   @override

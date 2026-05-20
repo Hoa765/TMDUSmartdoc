@@ -38,6 +38,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -54,11 +55,19 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  String? _faculty;
+  String? _academicYear;
+  String? _avatarIndex;
+
   String? get userName => _user?.displayName ?? _user?.email ?? 'Người dùng';
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
   User? get user => _user;
   String? get errorMessage => _errorMessage;
+
+  String get faculty => _faculty ?? 'Khoa học Máy tính';
+  String get academicYear => _academicYear ?? 'Năm 3';
+  String get avatarIndex => _avatarIndex ?? '0';
 
   /// Constructor: lắng nghe stream trạng thái xác thực Firebase.
   ///
@@ -72,8 +81,68 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     _auth.authStateChanges().listen((User? user) {
       _user = user;
+      if (user != null) {
+        _loadProfileData(user.uid);
+      } else {
+        _faculty = null;
+        _academicYear = null;
+        _avatarIndex = null;
+      }
       notifyListeners(); // GoRouter sẽ re-evaluate redirect khi _user thay đổi
     });
+  }
+
+  Future<void> _loadProfileData(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          _faculty = data['faculty']?.toString();
+          _academicYear = data['academicYear']?.toString();
+          _avatarIndex = data['avatarIndex']?.toString();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi tải profile: $e');
+    }
+  }
+
+  Future<bool> updateProfile({
+    required String displayName,
+    required String faculty,
+    required String academicYear,
+    required String avatarIndex,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      if (displayName.isNotEmpty && displayName != user.displayName) {
+        await user.updateDisplayName(displayName);
+      }
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'displayName': displayName,
+        'faculty': faculty,
+        'academicYear': academicYear,
+        'avatarIndex': avatarIndex,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      _faculty = faculty;
+      _academicYear = academicYear;
+      _avatarIndex = avatarIndex;
+      return true;
+    } catch (e) {
+      debugPrint('Lỗi cập nhật profile: $e');
+      _errorMessage = 'Đã xảy ra lỗi khi cập nhật thông tin.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void clearError() {

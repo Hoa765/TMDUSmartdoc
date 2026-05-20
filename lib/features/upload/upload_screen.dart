@@ -10,7 +10,9 @@ import '../home/providers/document_provider.dart';
 import '../notebooks/providers/notebook_provider.dart';
 
 class UploadScreen extends StatefulWidget {
-  const UploadScreen({super.key});
+  final String? preSelectedNotebookId;
+
+  const UploadScreen({super.key, this.preSelectedNotebookId});
 
   @override
   State<UploadScreen> createState() => _UploadScreenState();
@@ -22,6 +24,7 @@ class _UploadScreenState extends State<UploadScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedNotebookId = widget.preSelectedNotebookId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<NotebookProvider>().loadNotebooks();
     });

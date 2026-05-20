@@ -58,15 +58,16 @@ class _ChatScreenState extends State<ChatScreen> {
   void _showContextPicker(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        final docs = ctx.read<DocumentProvider>().documents;
-        final notebooks = ctx.read<NotebookProvider>().notebooks;
-        final chatProvider = ctx.read<ChatProvider>();
+        final docs = context.read<DocumentProvider>().documents;
+        final notebooks = context.read<NotebookProvider>().notebooks;
+        final chatProvider = context.read<ChatProvider>();
 
         return Column(
             mainAxisSize: MainAxisSize.min,
@@ -304,10 +305,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     return const TypingIndicator();
                   }
                   final message = messages[index];
+                  final String? question = (message.isAi && index > 0 && !messages[index - 1].isAi)
+                      ? messages[index - 1].text
+                      : null;
                   return (message.isAi
                           ? AIChatBubble(
                               text: message.text,
                               citations: message.citations,
+                              question: question,
                             )
                           : UserChatBubble(text: message.text))
                       .appEntrance(delay: AppMotion.stagger(index));

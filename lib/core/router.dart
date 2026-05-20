@@ -39,6 +39,7 @@ import '../features/auth/register_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/notebooks/notebooks_screen.dart';
+import '../features/notebooks/screens/notebook_detail_screen.dart';
 import '../features/upload/upload_screen.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/profile/profile_screen.dart';
@@ -50,7 +51,12 @@ import 'constants.dart';
 class _GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _sub;
   _GoRouterRefreshStream(Stream<dynamic> stream) {
-    _sub = stream.listen((_) => notifyListeners());
+    _sub = stream.listen((_) {
+      // Hoãn thông báo để tránh gọi notifyListeners() đồng bộ trong giai đoạn build.
+      scheduleMicrotask(() {
+        notifyListeners();
+      });
+    });
   }
   @override
   void dispose() {
@@ -59,19 +65,11 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// Key để truy cập Navigator gốc từ bất kỳ đâu trong app
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-
-// Key riêng cho Shell (các route có BottomNavigationBar)
-final GlobalKey<NavigatorState> _shellNavigatorKey =
-    GlobalKey<NavigatorState>();
-
 // Danh sách route cần đăng nhập — dùng startsWith() để bắt cả sub-route
 // vd: /home/document/123 cũng sẽ bị guard
 const _protectedRoutes = ['/home', '/notebooks', '/upload', '/chat', '/profile'];
 
 final router = GoRouter(
-  navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
   refreshListenable: _GoRouterRefreshStream(
     FirebaseAuth.instance.authStateChanges(),
@@ -125,7 +123,6 @@ final router = GoRouter(
     //   → child Widget thay đổi nhưng MainScaffold KHÔNG rebuild
     //   → BottomNavigationBar giữ nguyên, không bị flash
     ShellRoute(
-      navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => MainScaffold(child: child),
       routes: [
         GoRoute(
@@ -137,11 +134,22 @@ final router = GoRouter(
           path: '/notebooks',
           pageBuilder: (context, state) =>
               buildPageTransition(state, const NotebooksScreen()),
+          routes: [
+            GoRoute(
+              path: ':id',
+              pageBuilder: (context, state) {
+                final id = state.pathParameters['id'] ?? '';
+                return buildPageTransition(state, NotebookDetailScreen(notebookId: id));
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: '/upload',
-          pageBuilder: (context, state) =>
-              buildPageTransition(state, const UploadScreen()),
+          pageBuilder: (context, state) {
+            final notebookId = state.uri.queryParameters['notebook_id'];
+            return buildPageTransition(state, UploadScreen(preSelectedNotebookId: notebookId));
+          },
         ),
         GoRoute(
           path: '/chat',
